@@ -277,6 +277,46 @@
       padding: 40px;
       color: #64748b;
     }
+
+    /* フッターエリア */
+    .footer {
+      margin-top: 40px;
+      padding: 20px 0 10px;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #64748b;
+      border-top: 1px dashed #cbd5e1;
+    }
+
+    .x-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 6px 16px;
+      background-color: #ffffff;
+      color: #0f1419;
+      border: 1px solid #cbd5e1;
+      border-radius: 20px;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: bold;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+    }
+
+    .x-link:hover {
+      background-color: #0f1419;
+      color: #ffffff;
+      border-color: #0f1419;
+      transform: translateY(-1px);
+    }
+
+    .x-icon {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
   </style>
 </head>
 <body>
@@ -324,6 +364,17 @@
 
   <div id="loading" class="loading">スプレッドシートからデータを読み込み中...</div>
   <div id="item-grid" class="item-grid"></div>
+  <!-- フッター -->
+  <footer class="footer">
+    <p>ご意見・ご要望・不具合のご連絡はこちら</p>
+    <a href="https://x.com/bkm_lily" target="_blank" rel="noopener noreferrer" class="x-link">
+      <svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      </svg>
+      @bkm_lily
+    </a>
+  </footer>
+  <p> </p>
 </div>
 
 <script>
