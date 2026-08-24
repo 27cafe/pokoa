@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ぽこあポケモン｜アイテムタグ検索ツール</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <style>
+    :root {
+      --primary-color: #8b5cf6;
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-color: #334155;
+    }
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background-color: var(--bg-color);
+      background-image: url('bg_bkbk.png'); /* 画像の指定 */
+      background-size: cover;                /* 画面一杯に収める */
+      background-position: center;           /* 中央に配置 */
+      background-attachment: fixed;          /* スクロールしても背景を固定 */
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      color: #4c1d95;
+      font-size: 1.8rem;
+      margin-bottom: 24px;
+    }
+    .search-box {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      margin-bottom: 24px;
+    }
+    
+    /* アイテム名検索エリア */
+    .keyword-search-group {
+      margin-bottom: 16px;
+    }
+    .keyword-search-group label {
+      display: block;
+      font-weight: bold;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+      color: #475569;
+    }
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .keyword-input {
+      width: 100%;
+      padding: 10px 36px 10px 14px; /* 右側にクリアボタン用の余白を確保 */
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: var(--text-color);
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .keyword-input:focus {
+      border-color: var(--primary-color);
+    }
+    /* アイテム名クリアボタン */
+    .input-clear-btn {
+      position: absolute;
+      right: 10px;
+      background: #cbd5e1;
+      color: #ffffff;
+      border: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      font-size: 12px;
+      cursor: pointer;
+      display: none; /* 初期状態は非表示 */
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      padding: 0;
+      transition: background 0.2s;
+    }
+    .input-clear-btn:hover {
+      background: #94a3b8;
+    }
+
+    /* ドロップダウンエリア */
+    .filter-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .filter-group {
+      flex: 1;
+      min-width: 200px;
+    }
+    .filter-group label {
+      display: block;
+      font-weight: bold;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+      color: #475569;
+    }
+    .filter-select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      background-color: #fff;
+      color: var(--text-color);
+      outline: none;
+      cursor: pointer;
+    }
+    .filter-select:focus {
+      border-color: var(--primary-color);
+    }
+
+    /* タグエリア */
+    .tag-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-top: 16px;
+      border-top: 1px solid #f1f5f9;
+    }
+    .tag-header label {
+      font-weight: bold;
+      font-size: 1rem;
+    }
+    .clear-btn {
+      background: #b492da;
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .clear-btn:hover {
+      background: #68449f;
+    }
+
+    /* 折りたたみ用コンテナ */
+    .tag-container-wrapper {
+      position: relative;
+    }
+    .tag-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-height: 84px; /* 概ね2行分の高さ */
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .tag-group.expanded {
+      max-height: 2000px; /* 開いた時は制限なし */
+    }
+
+    /* 展開・折りたたみ切り替えボタン */
+    .toggle-tags-btn {
+      display: block;
+      width: 100%;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      color: #64748b;
+      padding: 8px 0;
+      margin-top: 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .toggle-tags-btn:hover {
+      background: #f1f5f9;
+      color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+
+    .tag-btn {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tag-btn:hover {
+      background: #e2e8f0;
+    }
+    .tag-btn.active {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .item-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .item-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .item-name {
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin: 0 0 8px 0;
+      color: #1e293b;
+    }
+    .item-detail {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+    .materials-box {
+      font-size: 0.85rem;
+      color: #475569;
+      margin: 8px 0;
+      background: #f8fafc;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid #f1f5f9;
+    }
+    .materials-title {
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: #334155;
+    }
+    .materials-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+    }
+    .material-item {
+      display: inline-block;
+    }
+    .item-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 10px;
+    }
+    .item-tag {
+      background: #f5f3ff;
+      color: #6d28d9;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>ぽこあポケモン｜タグ検索ツール</h1>
+
+  <div class="search-box">
+    <!-- アイテム名検索フォーム -->
+    <div class="keyword-search-group">
+      <label for="keyword-input" id="name-label">アイテム名検索</label>
+      <div class="input-wrapper">
+        <input type="text" id="keyword-input" class="keyword-input" placeholder="アイテム名を入力..." oninput="handleNameInput()">
+        <button id="name-clear-btn" class="input-clear-btn" onclick="clearNameInput()" title="文字をクリア">✕</button>
+      </div>
+    </div>
+
+    <!-- ドロップダウンエリア -->
+    <div class="filter-row">
+      <div class="filter-group">
+        <label for="category-select" id="category-label">カテゴリ</label>
+        <select id="category-select" class="filter-select" onchange="renderItems()">
+          <option value="">すべて</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="element-select" id="element-label">要素</label>
+        <select id="element-select" class="filter-select" onchange="renderItems()">
+          <option value="">すべて</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- タグエリア -->
+    <div class="tag-header">
+      <label>タグで絞り込み（複数選択可）</label>
+      <button class="clear-btn" onclick="clearTagFilters()">タグをリセット</button>
+    </div>
+
+    <div class="tag-container-wrapper">
+      <div id="tag-buttons" class="tag-group"></div>
+      <button id="toggle-tags-btn" class="toggle-tags-btn" onclick="toggleTagAccordion()">＋ タグをすべて表示</button>
+    </div>
+  </div>
+
+  <div id="loading" class="loading">スプレッドシートからデータを読み込み中...</div>
+  <div id="item-grid" class="item-grid"></div>
+</div>
+
+<script>
+  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhlQmzVGzJHHYHHx2X6m1g5nqDkP-rdJjrzMFXY6xir84tBIk7DELPmhnEhGeptYpBJla0-JM8nxqf/pub?gid=1306955892&single=true&output=csv';
+
+  let allData = [];
+  let selectedTags = new Set();
+  let isExpanded = false;
+  
+  let keyName     = '';
+  let keyCategory = '';
+  let keyElement  = '';
+  let keyTag      = '';
+
+  Papa.parse(CSV_URL, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: function(results) {
+      allData = results.data;
+      document.getElementById('loading').style.display = 'none';
+
+      if (allData.length > 0) {
+        const keys = Object.keys(allData[0]);
+        keyName     = keys[0] || ''; // A列
+        keyCategory = keys[1] || ''; // B列
+        keyElement  = keys[2] || ''; // C列
+        keyTag      = keys[3] || ''; // D列
+
+        if (keyName)     document.getElementById('name-label').textContent = keyName + '検索';
+        if (keyCategory) document.getElementById('category-label').textContent = keyCategory;
+        if (keyElement)  document.getElementById('element-label').textContent = keyElement;
+      }
+
+      setupDropdowns();
+      setupTagButtons();
+      renderItems();
+    }
+  });
+
+  function setupDropdowns() {
+    const catSet = new Set();
+    const elemSet = new Set();
+
+    allData.forEach(item => {
+      if (keyCategory && item[keyCategory]) catSet.add(item[keyCategory].trim());
+      if (keyElement && item[keyElement]) elemSet.add(item[keyElement].trim());
+    });
+
+    const catSelect = document.getElementById('category-select');
+    catSet.forEach(val => {
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = val;
+      catSelect.appendChild(opt);
+    });
+
+    const elemSelect = document.getElementById('element-select');
+    elemSet.forEach(val => {
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = val;
+      elemSelect.appendChild(opt);
+    });
+  }
+
+  function setupTagButtons() {
+    const tagSet = new Set();
+    
+    allData.forEach(item => {
+      if (keyTag && item[keyTag]) {
+        const tags = item[keyTag].split(/[,、\s]+/).map(t => t.trim());
+        tags.forEach(t => { if(t) tagSet.add(t); });
+      }
+    });
+
+    const container = document.getElementById('tag-buttons');
+    container.innerHTML = '';
+
+    tagSet.forEach(tag => {
+      const btn = document.createElement('button');
+      btn.className = 'tag-btn';
+      btn.textContent = tag;
+      btn.onclick = () => toggleTag(tag, btn);
+      container.appendChild(btn);
+    });
+  }
+
+  function toggleTag(tag, btnElement) {
+    if (selectedTags.has(tag)) {
+      selectedTags.delete(tag);
+      btnElement.classList.remove('active');
+    } else {
+      selectedTags.add(tag);
+      btnElement.classList.add('active');
+    }
+    renderItems();
+  }
+
+  function toggleTagAccordion() {
+    const group = document.getElementById('tag-buttons');
+    const btn = document.getElementById('toggle-tags-btn');
+    
+    isExpanded = !isExpanded;
+    if (isExpanded) {
+      group.classList.add('expanded');
+      btn.textContent = '－ タグをたたむ';
+    } else {
+      group.classList.remove('expanded');
+      btn.textContent = '＋ タグをすべて表示';
+    }
+  }
+
+  /* アイテム名入力時の処理 */
+  function handleNameInput() {
+    const input = document.getElementById('keyword-input');
+    const clearBtn = document.getElementById('name-clear-btn');
+    
+    // 入力文字の有無で「✕」ボタンを表示/非表示
+    clearBtn.style.display = input.value.length > 0 ? 'flex' : 'none';
+    renderItems();
+  }
+
+  /* アイテム名クリア処理 */
+  function clearNameInput() {
+    const input = document.getElementById('keyword-input');
+    const clearBtn = document.getElementById('name-clear-btn');
+    
+    input.value = '';
+    clearBtn.style.display = 'none';
+    input.focus();
+    renderItems();
+  }
+
+  function clearTagFilters() {
+    selectedTags.clear();
+    document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+    renderItems();
+  }
+
+  function renderItems() {
+    const grid = document.getElementById('item-grid');
+    grid.innerHTML = '';
+
+    const keyword = document.getElementById('keyword-input').value.trim().toLowerCase();
+    const selectedCat = document.getElementById('category-select').value;
+    const selectedElem = document.getElementById('element-select').value;
+
+    const filtered = allData.filter(item => {
+      // A列（アイテム名）によるテキスト部分一致検索
+      if (keyword) {
+        const itemName = (keyName && item[keyName]) ? item[keyName].toLowerCase() : '';
+        if (!itemName.includes(keyword)) return false;
+      }
+
+      if (selectedCat && item[keyCategory] !== selectedCat) return false;
+      if (selectedElem && item[keyElement] !== selectedElem) return false;
+
+      const itemTags = (keyTag && item[keyTag]) ? item[keyTag].split(/[,、\s]+/).map(t => t.trim()) : [];
+      return Array.from(selectedTags).every(selectedTag => itemTags.includes(selectedTag));
+    });
+
+    filtered.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'item-card';
+
+      const nameKey = keyName || Object.keys(item)[0];
+      const itemName = item[nameKey] || '名称未設定';
+
+      let detailsHtml = '';
+      let tagsHtml = '';
+      let materialsList = [];
+
+      for (let i = 1; i <= 10; i++) {
+        const matKey = Object.keys(item).find(k => k === `素材${i}`);
+        const countKey = Object.keys(item).find(k => k === `素材${i}個数`);
+        if (matKey && item[matKey]) {
+          const countVal = (countKey && item[countKey]) ? item[countKey] : '1';
+          materialsList.push(`<span class="material-item">${item[matKey]} x${countVal}</span>`);
+        }
+      }
+
+      Object.entries(item).forEach(([key, value]) => {
+        if (!value || key === nameKey || key.startsWith('素材')) return;
+
+        if (key === keyTag) {
+          const tags = value.split(/[,、\s]+/).map(t => t.trim());
+          tagsHtml = tags.map(t => `<span class="item-tag">${t}</span>`).join('');
+        } else {
+          detailsHtml += `<div class="item-detail"><strong>${key}:</strong> ${value}</div>`;
+        }
+      });
+
+      let materialsHtml = '';
+      if (materialsList.length > 0) {
+        materialsHtml = `
+          <div class="materials-box">
+            <div class="materials-title">必要素材:</div>
+            <div class="materials-list">${materialsList.join('')}</div>
+          </div>
+        `;
+      }
+
+      card.innerHTML = `
+        <div>
+          <div class="item-name">${itemName}</div>
+          ${detailsHtml}
+          ${materialsHtml}
+        </div>
+        <div class="item-tags">${tagsHtml}</div>
+      `;
+
+      grid.appendChild(card);
+    });
+
+    if (filtered.length === 0) {
+      grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 40px;">該当するアイテムが見つかりませんでした。</div>';
+    }
+  }
+</script>
+
+</body>
+</html>
